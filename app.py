@@ -1,23 +1,25 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for
-from playerID import findTeamKeys
+from playerID import findTeamKeys, roster,teamSelection
+import playerID
+print(roster)
 app = Flask(__name__)
 
-def getTeams():
-    return ['Team 1', 'Team 2', 'Team 3', 'Team 4']
+mlb_teams = list(findTeamKeys().keys())
+print(mlb_teams)
 
-
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    teams = findTeamKeys()
-    return render_template('index.html', teams=teams)
+    choices = mlb_teams  # List of choices
 
-@app.route('/second_function', methods=['POST'])
-def second_function():
-    selected_option = request.form['dropdown']
-    # Process the selected option
-    # ...
-    # Redirect to some page when done
-    return redirect(url_for('index'))  # assuming you have a route function named 'index'
+    if request.method == 'POST':
+        selected_choice = request.form.get('choice')
+        print(roster[selected_choice])
+
+        # Do something with the selected_choice variable
+        return f"You selected: {selected_choice}"
+    
+    return render_template('index.html', choices=choices)
+
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8000) 
+    app.run(host='127.0.0.1', port=5001)

@@ -1,21 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>MLB Teams</title>
+    <title>Dropdown Example</title>
 </head>
 <body>
-    <select>
-        {% for team in teams %}
-            <option value="{{ team }}">{{ team }}</option>
-        {% endfor %}
-    </select>
-    <form action="/second_function" method="post">
-        <select id="dropdown" name="dropdown">
-            <option value="option1">Option 1</option>
-            <option value="option2">Option 2</option>
-            <!-- Add more options as needed -->
+    <form method="POST" action="/">
+        <label for="choice">Select a choice:</label>
+        <select id="choice" name="choice">
+            {% for choice in choices %}
+            <option value="{{ choice }}">{{ choice }}</option>
+            {% endfor %}
         </select>
+        <br><br>
         <input type="submit" value="Submit">
     </form>
 </body>
