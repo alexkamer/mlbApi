@@ -1,15 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dropdown Example</title>
+    <title>MLB Team and Player Dropdowns</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#team').change(function() {
+                var team = $(this).val();
+                $.ajax({
+                    type: 'POST',
+                    url: '/get_players',
+                    data: {'team': team},
+                    success: function(response) {
+                        var players = response.players;
+                        var options = '';
+                        for (var i = 0; i < players.length; i++) {
+                            options += '<option value="' + players[i] + '">' + players[i] + '</option>';
+                        }
+                        $('#player').html(options);
+                    }
+                });
+            });
+        });
+    </script>
 </head>
 <body>
     <form method="POST" action="/">
-        <label for="choice">Select a choice:</label>
-        <select id="choice" name="choice">
-            {% for choice in choices %}
-            <option value="{{ choice }}">{{ choice }}</option>
+        <label for="team">Select a team:</label>
+        <select id="team" name="team">
+            {% for team in team_names %}
+            <option value="{{ team }}">{{ team }}</option>
             {% endfor %}
+        </select>
+        <br><br>
+        <label for="player">Select a player:</label>
+        <select id="player" name="player">
+            <!-- Options will be dynamically populated -->
         </select>
         <br><br>
         <input type="submit" value="Submit">
