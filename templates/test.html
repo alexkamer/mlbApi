@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>MLB Stats</title>
+</head>
+<body>
+  <h1>MLB Stats</h1>
+  <form method="POST">
+    <select name="team">
+      {% for team in team_names %}
+      <option value="{{ team }}">{{ team }}</option>
+      {% endfor %}
+    </select>
+
+    <input type="text" name="player" placeholder="Enter player ID">
+    <input type="submit" value="Submit">
+  </form>
+
+  <!-- Table display -->
+  <table>
+    <!-- Insert table data from Flask here. 'tables' is a list of HTML strings -->
+    {% if tables %}
+    {{ tables|safe }}
+    {% endif %}
+  </table>
+</body>
+</html>
