@@ -7,6 +7,7 @@ import numpy as np
 import logging as log
 from pprint import pprint
 
+apiCalls = 0
 year = 2023
 
 logLevel = 'INFO'
@@ -20,6 +21,10 @@ def findTeamKeys():
     mlbTeamKeys = {}
     url = "https://statsapi.mlb.com/api/v1/teams/"
     response = requests.get(url)
+
+    global apiCalls
+    apiCalls += 1
+
     data = response.json()
     for team in data['teams']:
         if team.get('sport', {}).get('name', '') == "Major League Baseball":
@@ -50,6 +55,10 @@ def calculateDates():
 def fetchSchedule(mlbTeamKeys, teamSelection, beginning_date, end_date):
     url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId={mlbTeamKeys[teamSelection]}&startDate={beginning_date}&endDate={end_date}"
     response = requests.get(url)
+
+    global apiCalls
+    apiCalls += 1
+    
     data = response.json()
     return data
 
@@ -65,6 +74,56 @@ def createGameKeyDict(data):
                 gameKeyDict[dateDict['date']].append(dateDict['games'][game]['gamePk'])
     return gameKeyDict
 
+
+def findTeamSchedule(teamId, startDate, endDate):
+    url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&teamId={teamId}&startDate={startDate}&endDate={endDate}"
+    response = requests.get(url)
+
+    global apiCalls
+    apiCalls += 1
+    
+    games = response.json()['dates']
+
+    return games
+
+
+def findL10(games, teamWanted):
+    wins = 0
+    losses = 0
+    for game in games[-10:]:
+        scoreDict = {
+            'away Team' : '',
+            'away Score' : 0,
+            'home Team' : '',
+            'home Score' : 0
+        }
+        teamWantedScore = 0
+        oppTeamScore = 0
+        for team in list(game['games'][0]['teams'].keys()):
+            #Find team u want based off of h/a and then determine the score of both teams and see if the team you wanted won or lost
+            scoreDict[f'{team} Team'] = game['games'][0]["teams"][team]['team']['name']
+            scoreDict[f'{team} Score'] = game['games'][0]["teams"][team].get('score',0)
+        
+        teamWantedHA = ''
+        for key, value in scoreDict.items():
+            if value == teamWanted:
+                teamWantedHA = key.split()[0]
+        if teamWantedHA == 'away':
+            if scoreDict['away Score'] > scoreDict['home Score']:
+                wins += 1
+            else:
+                losses += 1
+        else:
+            if scoreDict['away Score'] < scoreDict['home Score']:
+                wins += 1
+            else:
+                losses += 1
+
+        #pprint(game['games'][0]['teams'])
+    return f'{wins}-{losses}'
+
+
+
 # Retrieves the full roster of a specified team from the MLB's API, categorizing players as hitters or pitchers
 # Returns a dictionary with this type of hierarchy ['Team Name']['hitters/pitchers']['Player's Name']
 # Calling the player's name will return his player ID
@@ -73,6 +132,10 @@ def createPlayerIDDict(mlbTeamKeys, teamSelection):
     log.debug(f"Getting roster for {teamSelection}")
     url = f"https://statsapi.mlb.com/api/v1/teams/{mlbTeamKeys[teamSelection]}/roster/fullRoster?season=2023"
     response = requests.get(url)
+
+    global apiCalls
+    apiCalls += 1
+    
     data = response.json()
     playerIDDict[teamSelection] = {'hitters' : {}, 'pitchers' : {}}
     for player in data["roster"]:
@@ -96,6 +159,10 @@ print(temp)
 def pullRoster(gameID, teamSelection):
     url = f'https://statsapi.mlb.com/api/v1/game/{gameID}/boxscore'
     response = requests.get(url)
+
+    global apiCalls
+    apiCalls += 1
+    
     data = response.json()
 
     teams = ['home', 'away']
@@ -185,6 +252,10 @@ def findPitcherForGame(game_id, teamWanted):
     # Fetch the game data
     response = requests.get(url)
 
+    global apiCalls
+    apiCalls += 1
+    
+
     # Check if the request was successful
     if response.status_code == 200:
         data = response.json()
@@ -220,6 +291,10 @@ def grabHitterGamelog(player_id, year):
 
     # Fetch the player's gamelog for the year
     response = requests.get(url)
+
+    global apiCalls
+    apiCalls += 1
+    
 
     # Check if the request was successful
     if response.status_code == 200:
@@ -311,6 +386,10 @@ def grabPitcherGamelog(player_id, year):
     #print(url)
     # Fetch the player's gamelog for the year
     response = requests.get(url)
+
+    global apiCalls
+    apiCalls += 1
+    
 
     # Check if the request was successful
     if response.status_code == 200:
@@ -412,6 +491,9 @@ def grabAdvancedHitterGamelog(player_id, year):
     # Fetch the player's gamelog for the year
     response = requests.get(url)
 
+    global apiCalls
+    apiCalls += 1
+    
     # Check if the request was successful
     if response.status_code == 200:
         data = response.json()
@@ -478,7 +560,46 @@ def grabAdvancedHitterGamelog(player_id, year):
     else:
         print("Failed to fetch data")
 
-print(pd.DataFrame(grabAdvancedHitterGamelog(668731, 2023)))
+#print(pd.DataFrame(grabAdvancedHitterGamelog(668731, 2023)))
+import openpyxl
+def findDaySlate(date, mlbTeamKeys):
+    url = f'https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date={date}'
+    response = requests.get(url)
+
+    global apiCalls
+    apiCalls += 1
+    
+    games = response.json()['dates'][0]['games']
+    current_date = datetime.now().date()
+    gameDict = {
+        "gamePk" : [],
+        "H/A" : [],
+        "Team" : [],
+        "Record" : [],
+        "Score" : [],
+        "L10 Record" : []
+
+    }
+    for game in games:
+        for team in list(game['teams'].keys()):
+            gameDict['gamePk'].append(int(game['gamePk']))
+            gameDict['H/A'].append(team)
+            gameDict['Team'].append(game['teams'][team]['team']['name'])
+            gameDict['Record'].append(f'{game["teams"][team]["leagueRecord"]["wins"]}-{game["teams"][team]["leagueRecord"]["losses"]}')
+            gameDict['Score'].append(game['teams'][team].get('score', 0))
+            gameDict['L10 Record'].append(findL10(findTeamSchedule(mlbTeamKeys[game['teams'][team]['team']['name']], '2023-03-30', current_date), game['teams'][team]['team']['name'])
+)
+
+
+        gameDict['gamePk'].append(None)
+        gameDict['H/A'].append(None)
+        gameDict['Team'].append(None)
+        gameDict['Record'].append(None)
+        gameDict['Score'].append(None)
+        gameDict['L10 Record'].append(None)
+    return gameDict
+
+
 
 #Play by play for exact game
 def inDepthGameInfo(game_id):
@@ -486,8 +607,12 @@ def inDepthGameInfo(game_id):
     url = f"https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live"
     # Fetch the game data
     response = requests.get(url)
-    data = response.json()
 
+    global apiCalls
+    apiCalls += 1
+    
+    data = response.json()
+    gameData
     playByPlay = data["liveData"]["plays"]["allPlays"]
     playByPlayDict = {
         "Description" : [],
@@ -522,5 +647,19 @@ def inDepthGameInfo(game_id):
 
 #inDepthGameInfo(718006)
 
+gameSlate = pd.DataFrame(findDaySlate(datetime.now().date(), findTeamKeys()))
+gameSlate.to_excel('output.xlsx', index=False)
 
 
+import subprocess
+
+file_path = 'output.xlsx'
+quit_command = "osascript -e 'tell application \"Microsoft Excel\" to quit'"
+subprocess.run(quit_command, shell=True)
+
+# Reopen Numbers file
+open_command = f"open \"{file_path}\""
+subprocess.run(open_command, shell=True)
+
+
+print(apiCalls)
