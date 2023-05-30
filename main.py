@@ -612,7 +612,7 @@ def inDepthGameInfo(game_id):
     apiCalls += 1
     
     data = response.json()
-    gameData
+
     playByPlay = data["liveData"]["plays"]["allPlays"]
     playByPlayDict = {
         "Description" : [],
@@ -642,14 +642,14 @@ def inDepthGameInfo(game_id):
         playByPlayDict["Bat Side"].append(play["matchup"]['batSide']['code'])
 
 
-    print(pd.DataFrame(playByPlayDict))
+    return(pd.DataFrame(playByPlayDict))
     print(pitcherPCDict)
 
-#inDepthGameInfo(718006)
+
 
 gameSlate = pd.DataFrame(findDaySlate(datetime.now().date(), findTeamKeys()))
 gameSlate.to_excel('output.xlsx', index=False)
-
+inDepthGameInfo(718006).to_excel('output.xlsx', index=False)
 
 import subprocess
 
